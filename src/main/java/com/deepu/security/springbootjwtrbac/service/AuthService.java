@@ -14,7 +14,6 @@ import java.util.HashMap;
 
 @Service
 public class AuthService {
-
     @Autowired
     private OurUserRepo ourUserRepo;
     @Autowired
