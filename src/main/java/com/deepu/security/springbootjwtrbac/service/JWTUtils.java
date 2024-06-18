@@ -15,7 +15,6 @@ import java.util.function.Function;
 
 @Component
 public class JWTUtils {
-
     final private SecretKey Key;
     private  static  final long EXPIRATION_TIME = 86400000; //24hours or 86400000 milisecs
     public JWTUtils(){
