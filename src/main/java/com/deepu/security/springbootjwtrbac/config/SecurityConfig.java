@@ -21,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true , proxyTargetClass = true)
+@EnableMethodSecurity(proxyTargetClass = true)
 public class SecurityConfig {
 
     @Autowired
