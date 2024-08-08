@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class OurUserDetailsService implements UserDetailsService {
-
     @Autowired
     private OurUserRepo ourUserRepo;
     @Override

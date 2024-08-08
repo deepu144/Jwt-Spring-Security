@@ -1,11 +1,13 @@
 package com.deepu.security.springbootjwtrbac.config;
 
+import com.deepu.security.springbootjwtrbac.repository.TokenRepo;
 import com.deepu.security.springbootjwtrbac.service.JWTUtils;
 import com.deepu.security.springbootjwtrbac.service.OurUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,16 +17,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 
 @Component
 public class JWTAuthFIlter extends OncePerRequestFilter {
-
     @Autowired
     private JWTUtils jwtUtils;
     @Autowired
     private OurUserDetailsService ourUserDetailsService;
+    @Autowired
+    private TokenRepo tokenRepo;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,@NonNull FilterChain filterChain) throws ServletException, IOException {
@@ -39,8 +41,10 @@ public class JWTAuthFIlter extends OncePerRequestFilter {
         userEmail = jwtUtils.extractUsername(jwtToken);
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = ourUserDetailsService.loadUserByUsername(userEmail);
-
-            if (jwtUtils.isTokenValid(jwtToken, userDetails)) {
+            boolean isValidToken = tokenRepo.findByToken(jwtToken)
+                    .map(token -> !token.isExpired())
+                    .orElse(false);
+            if (jwtUtils.isTokenValid(jwtToken, userDetails) && isValidToken) {
                 SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
