@@ -4,7 +4,11 @@ import com.deepu.security.springbootjwtrbac.dto.AuthenticateObject;
 import com.deepu.security.springbootjwtrbac.dto.ResponseObject;
 import com.deepu.security.springbootjwtrbac.dto.UserObject;
 import com.deepu.security.springbootjwtrbac.entity.OurUsers;
+import com.deepu.security.springbootjwtrbac.entity.Token;
+import com.deepu.security.springbootjwtrbac.entity.TokenType;
 import com.deepu.security.springbootjwtrbac.repository.OurUserRepo;
+import com.deepu.security.springbootjwtrbac.repository.TokenRepo;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +26,8 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private AuthenticationManager authenticationManager;
+    @Autowired
+    private TokenRepo tokenRepo;
 
     public ResponseObject signUp(UserObject userObject){
         ResponseObject response = new ResponseObject();
@@ -32,12 +38,29 @@ public class AuthService {
         ourUserRepo.save(ourUsers);
         userObject.setId(ourUsers.getId());
         String jwt = jwtUtils.generateToken(ourUsers);
+        saveToken(jwt, ourUsers);
         String refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), ourUsers);
         response.setOurUsers(ourUsers);
         response.setToken(jwt);
         response.setRefreshToken(refreshToken);
-
         return response;
+    }
+
+    private void saveToken(String jwt, OurUsers ourUsers) {
+        Token token = Token.builder()
+                .token(jwt)
+                .tokenType(TokenType.BEARER)
+                .expired(false)
+                .ourUsers(ourUsers)
+                .build();
+        tokenRepo.save(token);
+    }
+
+    private void expireAllToken(OurUsers users){
+        var tokens = tokenRepo.findByOurUsers(users);
+        if(tokens.isEmpty()) return;
+        tokens.forEach(token -> token.setExpired(true));
+        tokenRepo.saveAll(tokens);
     }
 
     public ResponseObject signIn(AuthenticateObject authenticateObject){
@@ -46,6 +69,8 @@ public class AuthService {
         OurUsers user = ourUserRepo.findByEmail(authenticateObject.getEmail()).orElseThrow();
         System.out.println("USER IS: "+ user);
         var jwt = jwtUtils.generateToken(user);
+        expireAllToken(user);
+        saveToken(jwt,user);
         var refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), user);
         response.setToken(jwt);
         response.setRefreshToken(refreshToken);
